@@ -1,3 +1,5 @@
+mod message_buffer;
+
 fn main() {
 
 }
@@ -33,19 +35,19 @@ struct Header {
 }
 
 enum OpCode {
-    QUERY,  //0
-    IQUERY, //1
-    STATUS, //2
-    OTHER   //3-15
+    QUERY  = 0,
+    IQUERY = 1,
+    STATUS = 2,
+    OTHER  = 3
 }
 
 enum RCode {
-    NoError,           //0
-    FormatError,       //1
-    ServerFailure,     //2
-    NameError,         //3
-    NotImplemented,    //4
-    Refused            //5
+    NoError         = 0,
+    FormatError     = 1,
+    ServerFailure   = 2,
+    NameError       = 3,
+    NotImplemented  = 4,
+    Refused         = 5
 }
 
 struct Question {
