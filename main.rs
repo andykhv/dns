@@ -1,7 +1,19 @@
+use std::io;
+use std::io::Read;
+use std::fs::File;
+
 mod message_buffer;
 
-fn main() {
+fn main() -> io::Result<()>{
+    let mut message = message_buffer::MessageBuffer::new();
+    let mut f = File::open("query_packet")?;
+    let _ = f.read(&mut message.buffer);
 
+    for i in message {
+        println!("{:x}", i);
+    }
+
+    Ok(())
 }
 
 /*
