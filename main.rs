@@ -4,13 +4,34 @@ use std::fs::File;
 
 mod message_buffer;
 
-fn main() -> io::Result<()>{
+fn main() -> io::Result<()> {
     let mut message = message_buffer::MessageBuffer::new();
     let mut f = File::open("query_packet")?;
     let _ = f.read(&mut message.buffer);
+    let mut header = Header::new();
 
-    for i in message {
-        println!("{:x}", i);
+    //id
+    header.id += message.buffer[0] as u16;
+    header.id <<= 8;
+    header.id |= message.buffer[1] as u16;
+
+    //qr
+    let mut mask: u8 = 0b1000_0000;
+    header.qr = message.buffer[2] & mask == mask;
+
+    //opcode
+    mask = 0b0111_1000;
+    println!("{}", mask);
+    println!("{}", message.buffer[2]);
+    let mut opcode = message.buffer[2] & mask;
+    opcode >>= 3;
+    opcode += 0b0000_0001;
+    match opcode {
+        0 =>  header.opcode = OpCode::QUERY,
+        1 =>  header.opcode = OpCode::IQUERY,
+        2 =>  header.opcode = OpCode::STATUS,
+        3 =>  header.opcode = OpCode::OTHER,
+        _ =>  header.opcode = OpCode::QUERY,
     }
 
     Ok(())
@@ -44,6 +65,25 @@ struct Header {
     ancount: u16,   //# of resource records in answer section
     nscount: u16,   //# of name server resource records in authority records section
     arcount: u16,   //# of records in additional resource records section
+}
+
+impl Header {
+    pub fn new() -> Header {
+        Header {
+            id: 0,
+            qr: false,
+            opcode: OpCode::QUERY,
+            aa: false,
+            tc: false,
+            rd: false,
+            ra: false,
+            rcode: RCode::NoError,
+            qdcount: 0,
+            ancount: 0,
+            nscount: 0,
+            arcount: 0
+        }
+    }
 }
 
 enum OpCode {
