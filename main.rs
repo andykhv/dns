@@ -22,13 +22,6 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-/*
-* Header
-* Question
-* Answer (resource record)
-* Authority (resource record)
-* Additional (resource record)
-* */
 struct Message {
     header: Header,
     question: Question,
@@ -37,11 +30,4 @@ struct Message {
     additional: Vec<ResourceRecord>
 } 
 
-struct ResourceRecord {
-    name: u64,      //domain name
-    rtype: u16,     //type code of rdata
-    class: u16,     //class of rdata
-    ttl: u32,       //time interval (seconds) until cache -> trash
-    rdlength: u16,  //length of rdata
-    rdata: u16      //describes the resource
-}
+
