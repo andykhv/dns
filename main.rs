@@ -1,6 +1,7 @@
 mod header;
 mod message_buffer;
 mod question;
+mod enums;
 
 use std::io;
 use std::io::Read;
@@ -9,6 +10,10 @@ use message_buffer::MessageBuffer;
 use header::{Header, RCode, OpCode};
 use question::Question;
 
+/* TODO:
+* implement resource record
+* use iterator for implementation
+*/
 fn main() -> io::Result<()> {
     let mut message = MessageBuffer::new();
     let mut f = File::open("query_packet")?;

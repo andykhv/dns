@@ -1,46 +1,20 @@
 use message_buffer::MessageBuffer;
+use enums::Type;
+use enums::Class;
 
 #[derive(Debug)]
 pub struct Question {
     pub qname: String, //domain name
-    pub qtype: QType, //type of query
-    pub qclass: QClass //class of query
-}
-
-#[derive(Debug)]
-pub enum QType {
-    A       = 1,
-    NS      = 2,
-    MD      = 3,
-    MF      = 4,
-    CNAME   = 5,
-    SOA     = 6,
-    MB      = 7,
-    MG      = 8,
-    MR      = 9,
-    NULL    = 10,
-    WKS     = 11,
-    PTR     = 12,
-    HINFO   = 13,
-    MINFO   = 14,
-    MX      = 15,
-    TXT     = 16
-}
-
-#[derive(Debug)]
-pub enum QClass {
-    IN = 1,
-    CS = 2,
-    CH = 3,
-    HS = 4,
+    pub qtype: Type, //type of query
+    pub qclass: Class //class of query
 }
 
 impl Question {
     pub fn new() -> Self {
         Question {
             qname: String::from(""),
-            qtype: QType::A,
-            qclass: QClass::IN
+            qtype: Type::A,
+            qclass: Class::IN
         }
     }
 }
@@ -75,12 +49,12 @@ impl From<&MessageBuffer> for Question {
         qtype |= message.buffer[current_index] as u16;
 
         match qtype {
-            1 => question.qtype = QType::A,
-            2 => question.qtype = QType::NS,
-            3 => question.qtype = QType::MD,
-            4 => question.qtype = QType::MF,
-            5 => question.qtype = QType::CNAME,
-            _ => question.qtype = QType::NULL
+            1 => question.qtype = Type::A,
+            2 => question.qtype = Type::NS,
+            3 => question.qtype = Type::MD,
+            4 => question.qtype = Type::MF,
+            5 => question.qtype = Type::CNAME,
+            _ => question.qtype = Type::NULL
         }
 
         current_index += 1;
@@ -90,11 +64,11 @@ impl From<&MessageBuffer> for Question {
         qclass |= message.buffer[current_index] as u16;
 
         match qclass {
-            1 => question.qclass = QClass::IN,
-            2 => question.qclass = QClass::CS,
-            3 => question.qclass = QClass::CH,
-            4 => question.qclass = QClass::HS,
-            _ => question.qclass = QClass::IN
+            1 => question.qclass = Class::IN,
+            2 => question.qclass = Class::CS,
+            3 => question.qclass = Class::CH,
+            4 => question.qclass = Class::HS,
+            _ => question.qclass = Class::IN
         }
 
         return question;
