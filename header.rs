@@ -118,15 +118,15 @@ impl From<&MessageBuffer> for Header {
         header.ancount <<= 8;
         header.ancount |= message.buffer[7] as u16;
 
-        //qdcount
-        header.ancount += message.buffer[8] as u16;
-        header.ancount <<= 8;
-        header.ancount |= message.buffer[9] as u16;
+        //nscount
+        header.nscount += message.buffer[8] as u16;
+        header.nscount <<= 8;
+        header.nscount |= message.buffer[9] as u16;
 
         //qdcount
-        header.ancount += message.buffer[10] as u16;
-        header.ancount <<= 8;
-        header.ancount |= message.buffer[11] as u16;
+        header.arcount += message.buffer[10] as u16;
+        header.arcount <<= 8;
+        header.arcount |= message.buffer[11] as u16;
 
         return header;
     }
