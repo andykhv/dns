@@ -2,6 +2,7 @@ mod header;
 mod message_buffer;
 mod question;
 mod enums;
+mod resource_record;
 
 use std::io;
 use std::io::Read;
@@ -9,6 +10,7 @@ use std::fs::File;
 use message_buffer::MessageBuffer;
 use header::{Header, RCode, OpCode};
 use question::Question;
+use resource_record::ResourceRecord;
 
 /* TODO:
 * implement resource record
@@ -16,13 +18,15 @@ use question::Question;
 */
 fn main() -> io::Result<()> {
     let mut message = MessageBuffer::new();
-    let mut f = File::open("query_packet")?;
+    let mut f = File::open("response_packet")?;
     let _ = f.read(&mut message.buffer);
     let header = Header::from(&message);
     let question = Question::from(&message);
+    let answer = ResourceRecord::from(&message);
 
     println!("{:?}", header);
     println!("{:?}", question);
+    println!("{:?}", answer);
 
     Ok(())
 }
