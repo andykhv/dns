@@ -24,6 +24,18 @@ pub enum OpCode {
     OTHER  = 3
 }
 
+impl From<u8> for OpCode {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => OpCode::QUERY,
+            1 => OpCode::IQUERY,
+            2 => OpCode::STATUS,
+            3 => OpCode::OTHER,
+            _ => OpCode::QUERY,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum RCode {
     NoError         = 0,
@@ -32,6 +44,20 @@ pub enum RCode {
     NameError       = 3,
     NotImplemented  = 4,
     Refused         = 5
+}
+
+impl From<u8> for RCode {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => RCode::NoError,
+            1 => RCode::FormatError,
+            2 => RCode::ServerFailure,
+            3 => RCode::NameError,
+            4 => RCode::NotImplemented,
+            5 => RCode::Refused,
+            _ => RCode::NoError
+        }
+    }
 }
 
 impl Header {
@@ -53,80 +79,69 @@ impl Header {
     }
 }
 
-impl From<&MessageBuffer> for Header {
-    fn from(message: &MessageBuffer) -> Self {
+impl From<&mut MessageBuffer> for Header {
+    fn from(message: &mut MessageBuffer) -> Self {
         let mut header = Header::new();
 
         //id
-        header.id += message.buffer[0] as u16;
+        header.id += message.next().unwrap_or_default() as u16;
         header.id <<= 8;
-        header.id |= message.buffer[1] as u16;
+        header.id |= message.next().unwrap_or_default() as u16;
+
+        //byte will be masked to get the next fields
+        let mut byte: u8 = message.next().unwrap_or_default();
 
         //qr
         let mut mask: u8 = 0b1000_0000;
-        header.qr = message.buffer[2] & mask == mask;
+        header.qr = byte & mask == mask;
 
         //opcode
         mask = 0b0111_1000;
-        let mut opcode = message.buffer[2] & mask;
+        let mut opcode = byte & mask;
         opcode >>= 3;
-        opcode += 0b0000_0001;
-        match opcode {
-            0 =>  header.opcode = OpCode::QUERY,
-            1 =>  header.opcode = OpCode::IQUERY,
-            2 =>  header.opcode = OpCode::STATUS,
-            3 =>  header.opcode = OpCode::OTHER,
-            _ =>  header.opcode = OpCode::QUERY,
-        }
+        header.opcode = OpCode::from(opcode);
 
         //aa
         mask = 0b0000_0100;
-        header.aa = message.buffer[2] & mask == mask;
+        header.aa = byte & mask == mask;
 
         //tc
         mask = 0b0000_0010;
-        header.tc = message.buffer[2] & mask == mask;
+        header.tc = byte & mask == mask;
 
         //rd
         mask = 0b0000_0001;
-        header.rd = message.buffer[2] & mask == mask;
+        header.rd = byte & mask == mask;
 
+        byte = message.next().unwrap_or_default();
         //ra
         mask = 0b1000_0000;
-        header.ra = message.buffer[3] & mask == mask;
+        header.ra = byte & mask == mask;
 
         //rcode
         mask = 0b0000_1111;
-        let rcode = message.buffer[3] & mask;
-        match rcode {
-            0 => header.rcode = RCode::NoError,
-            1 => header.rcode = RCode::FormatError,
-            2 => header.rcode = RCode::ServerFailure,
-            3 => header.rcode = RCode::NameError,
-            4 => header.rcode = RCode::NotImplemented,
-            5 => header.rcode = RCode::Refused,
-            _ => header.rcode = RCode::NoError
-        }
+        let rcode = byte & mask;
+        header.rcode = RCode::from(rcode);
 
         //qdcount
-        header.qdcount += message.buffer[4] as u16;
+        header.qdcount += message.next().unwrap_or_default() as u16;
         header.qdcount <<= 8;
-        header.qdcount |= message.buffer[5] as u16;
+        header.qdcount |= message.next().unwrap_or_default() as u16;
 
         //ancount
-        header.ancount += message.buffer[6] as u16;
+        header.ancount += message.next().unwrap_or_default() as u16;
         header.ancount <<= 8;
-        header.ancount |= message.buffer[7] as u16;
+        header.ancount |= message.next().unwrap_or_default() as u16;
 
         //nscount
-        header.nscount += message.buffer[8] as u16;
+        header.nscount += message.next().unwrap_or_default() as u16;
         header.nscount <<= 8;
-        header.nscount |= message.buffer[9] as u16;
+        header.nscount |= message.next().unwrap_or_default() as u16;
 
         //qdcount
-        header.arcount += message.buffer[10] as u16;
+        header.arcount += message.next().unwrap_or_default() as u16;
         header.arcount <<= 8;
-        header.arcount |= message.buffer[11] as u16;
+        header.arcount |= message.next().unwrap_or_default() as u16;
 
         return header;
     }

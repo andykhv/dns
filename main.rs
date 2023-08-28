@@ -13,14 +13,13 @@ use question::Question;
 use resource_record::ResourceRecord;
 
 /* TODO:
-* implement resource record
 * use iterator for implementation
 */
 fn main() -> io::Result<()> {
     let mut message = MessageBuffer::new();
     let mut f = File::open("response_packet")?;
     let _ = f.read(&mut message.buffer);
-    let header = Header::from(&message);
+    let header = Header::from(&mut message);
     let question = Question::from(&message);
     let answer = ResourceRecord::from(&message);
 
