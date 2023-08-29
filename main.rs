@@ -8,33 +8,48 @@ use std::io;
 use std::io::Read;
 use std::fs::File;
 use message_buffer::MessageBuffer;
-use header::{Header, RCode, OpCode};
+use header::Header;
 use question::Question;
 use resource_record::ResourceRecord;
 
 fn main() -> io::Result<()> {
-    let mut message = MessageBuffer::new();
-    let mut f = File::open("response_packet")?;
-    let _ = f.read(&mut message.buffer);
-    let header = Header::from(&mut message);
-    let question = Question::from(&mut message);
-    let answer = ResourceRecord::from(&mut message);
-    let answer2 = ResourceRecord::from(&mut message);
+    let mut message_buffer = MessageBuffer::new();
+    let mut f = File::open("query_packet")?;
+    let _ = f.read(&mut message_buffer.buffer);
+    
+    let mut message = Message::new();
+    message.header = Header::from(&mut message_buffer);
 
-    println!("{:?}", header);
-    println!("{:?}", question);
-    println!("{:?}", answer);
-    println!("{:?}", answer2);
+    for _ in 0..message.header.qdcount {
+        message.question.push(Question::from(&mut message_buffer));
+    }
 
+    for _ in 0..message.header.ancount {
+        message.answer.push(ResourceRecord::from(&mut message_buffer));
+    }
+
+    println!("{:?}", message);
     Ok(())
 }
 
+#[derive(Debug)]
 struct Message {
     header: Header,
-    question: Question,
+    question: Vec<Question>,
     answer: Vec<ResourceRecord>,
     authority: Vec<ResourceRecord>,
     additional: Vec<ResourceRecord>
-} 
+}
 
+impl Message {
+    fn new() -> Self {
+        Message {
+            header: Header::new(),
+            question: Vec::new(),
+            answer: Vec::new(),
+            authority: Vec::new(),
+            additional: Vec::new(),
+        }
+    }
+}
 

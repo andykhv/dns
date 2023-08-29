@@ -40,7 +40,6 @@ impl From<&mut MessageBuffer> for ResourceRecord {
             pointer |= byte as u16;
             pointer &= pointer_mask;
 
-            let mut name = String::from("");
             let mut pointer = pointer as usize; //this can panic since pointer is originally u16
 
             while message.buffer[pointer] != 0 {
