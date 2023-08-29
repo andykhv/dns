@@ -1,6 +1,6 @@
 use message_buffer::MessageBuffer;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Header {
     pub id: u16,
     pub qr: bool,       //0 = query, 1 = response
@@ -16,8 +16,9 @@ pub struct Header {
     pub arcount: u16,   //# of records in additional resource records section
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum OpCode {
+    #[default]
     QUERY  = 0,
     IQUERY = 1,
     STATUS = 2,
@@ -36,8 +37,9 @@ impl From<u8> for OpCode {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum RCode {
+    #[default]
     NoError         = 0,
     FormatError     = 1,
     ServerFailure   = 2,
@@ -60,28 +62,9 @@ impl From<u8> for RCode {
     }
 }
 
-impl Header {
-    pub fn new() -> Header {
-        Header {
-            id: 0,
-            qr: false,
-            opcode: OpCode::QUERY,
-            aa: false,
-            tc: false,
-            rd: false,
-            ra: false,
-            rcode: RCode::NoError,
-            qdcount: 0,
-            ancount: 0,
-            nscount: 0,
-            arcount: 0
-        }
-    }
-}
-
 impl From<&mut MessageBuffer> for Header {
     fn from(message: &mut MessageBuffer) -> Self {
-        let mut header = Header::new();
+        let mut header = Header::default();
 
         //id
         header.id += message.next().unwrap_or_default() as u16;

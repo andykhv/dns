@@ -2,26 +2,16 @@ use message_buffer::MessageBuffer;
 use enums::Type;
 use enums::Class;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Question {
     pub qname: String, //domain name
     pub qtype: Type, //type of query
     pub qclass: Class //class of query
 }
 
-impl Question {
-    pub fn new() -> Self {
-        Question {
-            qname: String::from(""),
-            qtype: Type::A,
-            qclass: Class::IN
-        }
-    }
-}
-
 impl From<&mut MessageBuffer> for Question {
     fn from(message: &mut MessageBuffer) -> Question {
-        let mut question = Question::new();
+        let mut question = Question::default();
         let mut byte = message.next().unwrap_or_default();
 
         while byte != 0 {

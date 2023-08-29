@@ -7,8 +7,8 @@ pub struct MessageBuffer {
     pub position: usize
 }
 
-impl MessageBuffer {
-    pub fn new() -> MessageBuffer {
+impl Default for MessageBuffer {
+    fn default() -> MessageBuffer {
         MessageBuffer {
             buffer: [0; 512],
             position: 0

@@ -1,5 +1,6 @@
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Type {
+    #[default]
     A       = 1,
     NS      = 2,
     MD      = 3,
@@ -41,8 +42,9 @@ impl From<u16> for Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Class {
+    #[default]
     IN = 1,
     CS = 2,
     CH = 3,

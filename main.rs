@@ -14,11 +14,11 @@ use question::Question;
 use resource_record::ResourceRecord;
 
 fn main() -> Result<()> {
-    let mut message_buffer = MessageBuffer::new();
+    let mut message_buffer = MessageBuffer::default();
     let mut f = File::open("query_packet")?;
     let _ = f.read(&mut message_buffer.buffer);
     
-    let mut message = Message::new();
+    let mut message = Message::default();
     message.header = Header::from(&mut message_buffer);
 
     for _ in 0..message.header.qdcount {

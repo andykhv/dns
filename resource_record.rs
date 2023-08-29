@@ -2,7 +2,7 @@ use message_buffer::MessageBuffer;
 use enums::Type;
 use enums::Class;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ResourceRecord {
     pub name: String,   //domain name
     pub rtype: Type,    //type code of rdata
@@ -12,22 +12,9 @@ pub struct ResourceRecord {
     pub rdata: String   //describes the resource
 }
 
-impl ResourceRecord {
-    fn new() -> ResourceRecord {
-        ResourceRecord {
-            name: String::from(""),
-            rtype: Type::A,
-            rclass: Class::IN,
-            ttl: 0,
-            rdlength: 0,
-            rdata: String::from("")
-        }
-    }
-}
-
 impl From<&mut MessageBuffer> for ResourceRecord {
     fn from(message: &mut MessageBuffer) ->  ResourceRecord {
-        let mut resource_record = ResourceRecord::new();
+        let mut resource_record = ResourceRecord::default();
 
         let compression_mask = 0b1100_0000;
         let mut byte = message.next().unwrap_or_default();
