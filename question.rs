@@ -19,57 +19,34 @@ impl Question {
     }
 }
 
-impl From<&MessageBuffer> for Question {
-    fn from(message: &MessageBuffer) -> Question {
+impl From<&mut MessageBuffer> for Question {
+    fn from(message: &mut MessageBuffer) -> Question {
         let mut question = Question::new();
-        let mut current_index = 12;
+        let mut byte = message.next().unwrap_or_default();
 
-        while message.buffer[current_index] != 0 {
-            let qname_count = message.buffer[current_index];
+        while byte != 0 {
+            let qname_count = byte;
 
-            for byte in 1..=qname_count {
-                let index = current_index + byte as usize;
-                let character = message.buffer[index] as char;
+            for _ in 0..qname_count {
+                let character = message.next().unwrap_or_default() as char;
                 question.qname.push(character);
             }
 
-            current_index += qname_count as usize;
-            current_index += 1;
-
-            if message.buffer[current_index] != 0 {
-                question.qname.push('.');
-            }
+            question.qname.push('.');
+            byte = message.next().unwrap_or_default();
         }
 
-        current_index += 1;
+        question.qname.pop();
 
-        let mut qtype: u16 = message.buffer[current_index] as u16;
+        let mut qtype: u16 = message.next().unwrap_or_default() as u16;
         qtype <<= 8;
-        current_index += 1;
-        qtype |= message.buffer[current_index] as u16;
+        qtype |= message.next().unwrap_or_default() as u16;
+        question.qtype = Type::from(qtype);
 
-        match qtype {
-            1 => question.qtype = Type::A,
-            2 => question.qtype = Type::NS,
-            3 => question.qtype = Type::MD,
-            4 => question.qtype = Type::MF,
-            5 => question.qtype = Type::CNAME,
-            _ => question.qtype = Type::NULL
-        }
-
-        current_index += 1;
-        let mut qclass: u16 = message.buffer[current_index] as u16;
+        let mut qclass: u16 = message.next().unwrap_or_default() as u16;
         qclass <<= 8;
-        current_index += 1;
-        qclass |= message.buffer[current_index] as u16;
-
-        match qclass {
-            1 => question.qclass = Class::IN,
-            2 => question.qclass = Class::CS,
-            3 => question.qclass = Class::CH,
-            4 => question.qclass = Class::HS,
-            _ => question.qclass = Class::IN
-        }
+        qclass |= message.next().unwrap_or_default() as u16;
+        question.qclass = Class::from(qclass);
 
         return question;
     }

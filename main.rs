@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
     let mut f = File::open("response_packet")?;
     let _ = f.read(&mut message.buffer);
     let header = Header::from(&mut message);
-    let question = Question::from(&message);
+    let question = Question::from(&mut message);
     let answer = ResourceRecord::from(&message);
 
     println!("{:?}", header);
