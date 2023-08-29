@@ -12,20 +12,19 @@ use header::{Header, RCode, OpCode};
 use question::Question;
 use resource_record::ResourceRecord;
 
-/* TODO:
-* use iterator for implementation
-*/
 fn main() -> io::Result<()> {
     let mut message = MessageBuffer::new();
     let mut f = File::open("response_packet")?;
     let _ = f.read(&mut message.buffer);
     let header = Header::from(&mut message);
     let question = Question::from(&mut message);
-    let answer = ResourceRecord::from(&message);
+    let answer = ResourceRecord::from(&mut message);
+    let answer2 = ResourceRecord::from(&mut message);
 
     println!("{:?}", header);
     println!("{:?}", question);
     println!("{:?}", answer);
+    println!("{:?}", answer2);
 
     Ok(())
 }

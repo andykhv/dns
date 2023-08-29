@@ -25,101 +25,71 @@ impl ResourceRecord {
     }
 }
 
-impl From<&MessageBuffer> for ResourceRecord {
-    fn from(message: &MessageBuffer) ->  ResourceRecord {
+impl From<&mut MessageBuffer> for ResourceRecord {
+    fn from(message: &mut MessageBuffer) ->  ResourceRecord {
         let mut resource_record = ResourceRecord::new();
-        let mut current_index = 35;
+
         let compression_mask = 0b1100_0000;
-        if message.buffer[current_index] == compression_mask {
-            let offset_mask = 0b0011_1111_1111_1111;
-            let mut offset: u16 = 0;
-            offset += message.buffer[current_index] as u16;
-            offset <<= 8;
-            offset |= message.buffer[current_index + 1] as u16;
-            offset &= offset_mask;
+        let mut byte = message.next().unwrap_or_default();
+        if byte == compression_mask {
+            let pointer_mask = 0b0011_1111_1111_1111;
+            let mut pointer: u16 = 0;
+            pointer += byte as u16;
+            pointer <<= 8;
+            byte = message.next().unwrap_or_default();
+            pointer |= byte as u16;
+            pointer &= pointer_mask;
+
             let mut name = String::from("");
-            let mut offset = offset as usize;
-            println!("{}", offset);
+            let mut pointer = pointer as usize; //this can panic since pointer is originally u16
 
-            while message.buffer[offset] != 0 {
-                let qname_count = message.buffer[offset];
+            while message.buffer[pointer] != 0 {
+                let qname_count = message.buffer[pointer];
 
-                for byte in 1..=qname_count {
-                    let index = offset + byte as usize;
+                for offset in 1..=qname_count {
+                    let index = pointer + offset as usize;
                     let character = message.buffer[index] as char;
                     resource_record.name.push(character);
                 }
 
-                offset += qname_count as usize;
-                offset += 1;
+                pointer += (qname_count as usize) + 1;
 
-                if message.buffer[offset] != 0 {
+                //we reach the end if the current byte is 0
+                if message.buffer[pointer] != 0 {
                     resource_record.name.push('.');
                 }
             }
-
         }
 
-        current_index += 2;
         let mut type_value: u16 = 0;
-        type_value += message.buffer[current_index] as u16;
+        type_value += message.next().unwrap_or_default() as u16;
         type_value <<= 8;
-        current_index += 1;
-        type_value |= message.buffer[current_index] as u16;
+        type_value |= message.next().unwrap_or_default() as u16;
+        resource_record.rtype = Type::from(type_value);
 
-        match type_value {
-            1 => resource_record.rtype = Type::A,
-            2 => resource_record.rtype = Type::NS,
-            3 => resource_record.rtype = Type::MD,
-            4 => resource_record.rtype = Type::MF,
-            5 => resource_record.rtype = Type::CNAME,
-            16 => resource_record.rtype = Type::TXT,
-            _ => resource_record.rtype = Type::NULL
-        }
-
-        current_index += 1;
         let mut class_value: u16 = 0;
-        class_value += message.buffer[current_index] as u16;
+        class_value += message.next().unwrap_or_default() as u16;
         class_value <<= 8;
-        current_index += 1;
-        class_value |= message.buffer[current_index] as u16;
+        class_value |= message.next().unwrap_or_default() as u16;
+        resource_record.rclass = Class::from(class_value);
 
-        match class_value {
-            1 => resource_record.rclass = Class::IN,
-            2 => resource_record.rclass = Class::CS,
-            3 => resource_record.rclass = Class::CH,
-            4 => resource_record.rclass = Class::HS,
-            _ => resource_record.rclass = Class::IN
-        }
-
-        current_index += 1;
-
-        resource_record.ttl |= message.buffer[current_index] as u32;
+        resource_record.ttl |= message.next().unwrap_or_default() as u32;
         resource_record.ttl <<= 24;
-        current_index+=1;
-        resource_record.ttl |= message.buffer[current_index] as u32;
+        resource_record.ttl |= message.next().unwrap_or_default() as u32;
         resource_record.ttl <<= 16;
-        current_index+=1;
-        resource_record.ttl |= message.buffer[current_index] as u32;
+        resource_record.ttl |= message.next().unwrap_or_default() as u32;
         resource_record.ttl <<= 8;
-        current_index+=1;
-        resource_record.ttl |= message.buffer[current_index] as u32;
-        current_index+=1;
+        resource_record.ttl |= message.next().unwrap_or_default() as u32;
 
-        resource_record.rdlength |= message.buffer[current_index] as u16;
+        resource_record.rdlength |= message.next().unwrap_or_default() as u16;
         resource_record.rdlength <<= 8;
-        current_index+=1;
-        resource_record.rdlength |= message.buffer[current_index] as u16;
-        current_index+=1;
+        resource_record.rdlength |= message.next().unwrap_or_default() as u16;
 
         for _ in 0..resource_record.rdlength {
-            let value = message.buffer[current_index];
+            let value = message.next().unwrap_or_default();
             resource_record.rdata.push_str(value.to_string().as_str());
             resource_record.rdata.push('.');
-            current_index += 1;
         }
-
-        println!("{}", current_index);
 
         resource_record.rdata.pop();
 
