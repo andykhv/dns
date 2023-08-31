@@ -1,4 +1,4 @@
-use message_buffer::MessageBuffer;
+use crate::message_buffer::MessageBuffer;
 
 #[derive(Debug, Default)]
 pub struct Header {

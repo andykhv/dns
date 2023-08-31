@@ -1,6 +1,6 @@
-use header::Header;
-use question::Question;
-use resource_record::ResourceRecord;
+use crate::header::Header;
+use crate::question::Question;
+use crate::resource_record::ResourceRecord;
 
 #[derive(Debug, Default)]
 pub struct Message {

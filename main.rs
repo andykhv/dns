@@ -7,11 +7,11 @@ mod resource_record;
 
 use std::io::{Read, Result};
 use std::fs::File;
-use message::Message;
-use message_buffer::MessageBuffer;
-use header::Header;
-use question::Question;
-use resource_record::ResourceRecord;
+use crate::message::Message;
+use crate::message_buffer::MessageBuffer;
+use crate::header::Header;
+use crate::question::Question;
+use crate::resource_record::ResourceRecord;
 
 fn main() -> Result<()> {
     let mut message_buffer = MessageBuffer::default();

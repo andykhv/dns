@@ -1,6 +1,5 @@
-use message_buffer::MessageBuffer;
-use enums::Type;
-use enums::Class;
+use crate::message_buffer::MessageBuffer;
+use crate::enums::{Type, Class};
 
 #[derive(Debug, Default)]
 pub struct ResourceRecord {
