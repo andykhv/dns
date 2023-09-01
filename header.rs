@@ -25,6 +25,17 @@ pub enum OpCode {
     OTHER  = 3
 }
 
+#[derive(Debug, Default)]
+pub enum RCode {
+    #[default]
+    NoError         = 0,
+    FormatError     = 1,
+    ServerFailure   = 2,
+    NameError       = 3,
+    NotImplemented  = 4,
+    Refused         = 5
+}
+
 impl From<u8> for OpCode {
     fn from(value: u8) -> Self {
         match value {
@@ -37,15 +48,15 @@ impl From<u8> for OpCode {
     }
 }
 
-#[derive(Debug, Default)]
-pub enum RCode {
-    #[default]
-    NoError         = 0,
-    FormatError     = 1,
-    ServerFailure   = 2,
-    NameError       = 3,
-    NotImplemented  = 4,
-    Refused         = 5
+impl From<OpCode> for u8 {
+    fn from(value: OpCode) -> u8 {
+        match value {
+            OpCode::QUERY  => 0b0000_0000,
+            OpCode::IQUERY => 0b0000_0001,
+            OpCode::STATUS => 0b0000_0010,
+            OpCode::OTHER  => 0b0000_0011,
+        }
+    }
 }
 
 impl From<u8> for RCode {
@@ -58,6 +69,19 @@ impl From<u8> for RCode {
             4 => RCode::NotImplemented,
             5 => RCode::Refused,
             _ => RCode::NoError
+        }
+    }
+}
+
+impl From<RCode> for u8 {
+    fn from(value: RCode) -> u8 {
+        match value {
+            RCode::NoError        => 0b0000_0000,
+            RCode::FormatError    => 0b0000_0001,
+            RCode::ServerFailure  => 0b0000_0010,
+            RCode::NameError      => 0b0000_0011,
+            RCode::NotImplemented => 0b0000_0100,
+            RCode::Refused        => 0b0000_0101,
         }
     }
 }
@@ -130,4 +154,58 @@ impl From<&mut MessageBuffer> for Header {
     }
 }
 
+impl Header {
+    pub fn to_bytes(self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
 
+        let id = self.id.to_be_bytes();
+        bytes.push(id[0]);
+        bytes.push(id[1]);
+        
+        let mut byte: u8 = 0;
+        let qr = u8::from(self.qr) << 7;
+        byte |= qr;
+
+        let opcode = (u8::from(self.opcode)) << 6;
+        byte |= opcode;
+
+        let aa = u8::from(self.aa) << 2;
+        byte |= aa;
+
+        let tc = u8::from(self.tc) << 1;
+        byte |= tc;
+
+        let rd = u8::from(self.rd);
+        byte |= rd;
+
+        bytes.push(byte);
+
+        byte = 0;
+
+        let ra = (u8::from(self.ra)) << 7;
+        byte |= ra;
+
+        let rcode = u8::from(self.rcode);
+        byte |= rcode;
+
+        bytes.push(byte);
+
+        let qdcount = self.qdcount.to_be_bytes();
+        bytes.push(qdcount[0]);
+        bytes.push(qdcount[1]);
+
+        let ancount = self.ancount.to_be_bytes();
+        bytes.push(ancount[0]);
+        bytes.push(ancount[1]);
+
+        let nscount = self.nscount.to_be_bytes();
+        bytes.push(nscount[0]);
+        bytes.push(nscount[1]);
+
+        let arcount = self.arcount.to_be_bytes();
+        bytes.push(arcount[0]);
+        bytes.push(arcount[1]);
+
+        return bytes;
+    }
+}
