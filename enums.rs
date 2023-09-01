@@ -42,6 +42,29 @@ impl From<u16> for Type {
     }
 }
 
+impl From<Type> for [u8; 2] {
+    fn from(value: Type) -> Self {
+        match value {
+            Type::A =>     [0b0000_0000, 0b0000_0001],
+            Type::NS =>    [0b0000_0000, 0b0000_0010],
+            Type::MD =>    [0b0000_0000, 0b0000_0011],
+            Type::MF =>    [0b0000_0000, 0b0000_0100],
+            Type::CNAME => [0b0000_0000, 0b0000_0101],
+            Type::SOA =>   [0b0000_0000, 0b0000_0110],
+            Type::MB =>    [0b0000_0000, 0b0000_0111],
+            Type::MG =>    [0b0000_0000, 0b0000_1000],
+            Type::MR =>    [0b0000_0000, 0b0000_1001],
+            Type::NULL =>  [0b0000_0000, 0b0000_1010],
+            Type::WKS =>   [0b0000_0000, 0b0000_1011],
+            Type::PTR =>   [0b0000_0000, 0b0000_1100],
+            Type::HINFO => [0b0000_0000, 0b0000_1101],
+            Type::MINFO => [0b0000_0000, 0b0000_1110],
+            Type::MX =>    [0b0000_0000, 0b0000_1111],
+            Type::TXT =>   [0b0000_0000, 0b0001_0000],
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub enum Class {
     #[default]
@@ -49,6 +72,17 @@ pub enum Class {
     CS = 2,
     CH = 3,
     HS = 4,
+}
+
+impl From<Class> for [u8; 2] {
+    fn from(value: Class) -> Self {
+        match value {
+            Class::IN => [0b0000_0000, 0b0000_0001],
+            Class::CS => [0b0000_0000, 0b0000_0010],
+            Class::CH => [0b0000_0000, 0b0000_0011],
+            Class::HS => [0b0000_0000, 0b0000_0100],
+        }
+    }
 }
 
 impl From<u16> for Class {

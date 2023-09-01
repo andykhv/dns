@@ -40,3 +40,19 @@ impl From<&mut MessageBuffer> for Question {
         return question;
     }
 }
+
+impl Question {
+    pub fn to_bytes(self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
+
+        for word in self.qname.split('.') {
+            bytes.push(word.len() as u8);
+            bytes.append(&mut word.as_bytes().to_vec());
+        }
+
+        bytes.append(&mut <[u8; 2]>::from(self.qtype).to_vec());
+        bytes.append(&mut <[u8; 2]>::from(self.qclass).to_vec());
+
+        return bytes;
+    }
+}
