@@ -49,6 +49,8 @@ impl Question {
             bytes.push(word.len() as u8);
             bytes.append(&mut word.as_bytes().to_vec());
         }
+        
+        bytes.push(0);
 
         bytes.append(&mut <[u8; 2]>::from(self.qtype).to_vec());
         bytes.append(&mut <[u8; 2]>::from(self.qclass).to_vec());
