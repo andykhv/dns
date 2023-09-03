@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     println!("{:?}", message);
 
     let mut header = Header::default();
-    header.rd = true;
+    header.recursion_desired = true;
     header.qdcount = 1;
     header.id = 192;
     let mut question = Question::default();

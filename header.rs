@@ -3,17 +3,17 @@ use crate::message_buffer::MessageBuffer;
 #[derive(Debug, Default)]
 pub struct Header {
     pub id: u16,
-    pub qr: bool,       //0 = query, 1 = response
+    pub qr: bool,
     pub opcode: OpCode,
-    pub aa: bool,       //authoratative answer
-    pub tc: bool,       //truncated
-    pub rd: bool,       //recursion desired
-    pub ra: bool,       //recursion available
+    pub authoritative_answer: bool,
+    pub truncated: bool,
+    pub recursion_desired: bool,
+    pub recursion_available: bool,
     pub rcode: RCode,
-    pub qdcount: u16,   //# of entries in question section
-    pub ancount: u16,   //# of resource records in answer section
-    pub nscount: u16,   //# of name server resource records in authority records section
-    pub arcount: u16,   //# of records in additional resource records section
+    pub qdcount: u16,
+    pub ancount: u16,
+    pub nscount: u16,
+    pub arcount: u16,
 }
 
 #[derive(Debug, Default)]
@@ -110,20 +110,20 @@ impl From<&mut MessageBuffer> for Header {
 
         //aa
         mask = 0b0000_0100;
-        header.aa = byte & mask == mask;
+        header.authoritative_answer = byte & mask == mask;
 
         //tc
         mask = 0b0000_0010;
-        header.tc = byte & mask == mask;
+        header.truncated = byte & mask == mask;
 
         //rd
         mask = 0b0000_0001;
-        header.rd = byte & mask == mask;
+        header.recursion_desired = byte & mask == mask;
 
         byte = message.next().unwrap_or_default();
         //ra
         mask = 0b1000_0000;
-        header.ra = byte & mask == mask;
+        header.recursion_available = byte & mask == mask;
 
         //rcode
         mask = 0b0000_1111;
@@ -169,20 +169,20 @@ impl Header {
         let opcode = (u8::from(self.opcode)) << 6;
         byte |= opcode;
 
-        let aa = u8::from(self.aa) << 2;
+        let aa = u8::from(self.authoritative_answer) << 2;
         byte |= aa;
 
-        let tc = u8::from(self.tc) << 1;
+        let tc = u8::from(self.truncated) << 1;
         byte |= tc;
 
-        let rd = u8::from(self.rd);
+        let rd = u8::from(self.recursion_desired);
         byte |= rd;
 
         bytes.push(byte);
 
         byte = 0;
 
-        let ra = (u8::from(self.ra)) << 7;
+        let ra = (u8::from(self.recursion_available)) << 7;
         byte |= ra;
 
         let rcode = u8::from(self.rcode);
