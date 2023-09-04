@@ -5,7 +5,7 @@ use crate::enums::{Type, Class};
 pub struct ResourceRecord {
     pub name: String,   //domain name
     pub rtype: Type,    //type code of rdata
-    pub rclass: Class,   //class of rdata
+    pub rclass: Class,  //class of rdata
     pub ttl: u32,       //time interval (seconds) until cache -> trash
     pub rdlength: u16,  //length of rdata
     pub rdata: String   //describes the resource
@@ -26,23 +26,35 @@ impl From<&mut MessageBuffer> for ResourceRecord {
             pointer |= byte as u16;
             pointer &= pointer_mask;
 
-            let mut pointer = pointer as usize; //this can panic since pointer is originally u16
+            let pointer = pointer as usize; //this can panic since pointer is originally u16
+            let previous_pointer = message.get_position();
+            let result = message.seek(pointer);
 
-            while message.buffer[pointer] != 0 {
-                let qname_count = message.buffer[pointer];
+            if result.is_err() {
+                println!("{}", result.unwrap_err());
+                return resource_record;
+            }
 
-                for offset in 1..=qname_count {
-                    let index = pointer + offset as usize;
-                    let character = message.buffer[index] as char;
+            let mut byte = message.next().unwrap_or_default();
+            while byte != 0 {
+                let qname_count = byte;
+
+                for _ in 0..qname_count {
+                    let character = message.next().unwrap_or_default() as char;
                     resource_record.name.push(character);
                 }
 
-                pointer += (qname_count as usize) + 1;
-
                 //we reach the end if the current byte is 0
-                if message.buffer[pointer] != 0 {
+                byte = message.next().unwrap_or_default();
+                if byte != 0 {
                     resource_record.name.push('.');
                 }
+            }
+
+            let result = message.seek(previous_pointer);
+            if result.is_err() {
+                println!("{}", result.unwrap_err());
+                return resource_record;
             }
         }
 
@@ -70,13 +82,17 @@ impl From<&mut MessageBuffer> for ResourceRecord {
         resource_record.rdlength <<= 8;
         resource_record.rdlength |= message.next().unwrap_or_default() as u16;
 
-        for _ in 0..resource_record.rdlength {
-            let value = message.next().unwrap_or_default();
-            resource_record.rdata.push_str(value.to_string().as_str());
-            resource_record.rdata.push('.');
+        match resource_record.rtype {
+            Type::A => {
+                for _ in 0..resource_record.rdlength {
+                    let value = message.next().unwrap_or_default();
+                    resource_record.rdata.push_str(value.to_string().as_str());
+                    resource_record.rdata.push('.');
+                }
+                resource_record.rdata.pop();
+            },
+            _ => resource_record.rdata = String::from("UNKNOWN TYPE")
         }
-
-        resource_record.rdata.pop();
 
         return resource_record;
     }

@@ -1,18 +1,28 @@
-
-/* MessageBuffer represents a 512 byte DNS message.
- * 
- */
+// MessageBuffer represents a raw 512 byte DNS message.
 pub struct MessageBuffer {
-    pub buffer: [u8; 512],
-    pub position: usize
+    buffer: [u8; 512],
+    position: usize
 }
 
-impl Default for MessageBuffer {
-    fn default() -> MessageBuffer {
+impl MessageBuffer {
+    pub fn new(buffer: [u8; 512]) -> Self {
         MessageBuffer {
-            buffer: [0; 512],
-            position: 0
+            buffer: buffer, position: 0
         }
+    }
+
+    pub fn seek(&mut self, position: usize) -> Result<(), &'static str>{
+        if position >= self.buffer.len() {
+            return Err("position out of bounds");
+        }
+
+        self.position = position;
+
+        Ok(())
+    }
+
+    pub fn get_position(&self) -> usize {
+        self.position
     }
 }
 

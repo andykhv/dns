@@ -5,7 +5,7 @@ mod question;
 mod enums;
 mod resource_record;
 
-use std::io::{Read, Write, Result};
+use std::io::{Read, Result};
 use std::fs::File;
 use std::net::UdpSocket;
 use crate::message::Message;
@@ -14,10 +14,15 @@ use crate::header::Header;
 use crate::question::Question;
 use crate::resource_record::ResourceRecord;
 
+/* TODO:
+ * create dns server
+ * implement CNAME, NS, MX, AAAA resource_record types
+ */
 fn main() -> Result<()> {
-    let mut message_buffer = MessageBuffer::default();
-    let mut f = File::open("./packets/query_packet")?;
-    let _ = f.read(&mut message_buffer.buffer);
+    let mut buffer: [u8; 512] = [0; 512];
+    let mut f = File::open("./packets/response_packet")?;
+    let _ = f.read(&mut buffer);
+    let mut message_buffer = MessageBuffer::new(buffer);
     
     let mut message = Message::default();
     message.header = Header::from(&mut message_buffer);
@@ -57,8 +62,9 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let mut receive_buffer = MessageBuffer::default();
-    socket.recv_from(&mut receive_buffer.buffer)?;
+    let mut buffer: [u8; 512] = [0; 512];
+    socket.recv_from(&mut buffer)?;
+    let mut receive_buffer = MessageBuffer::new(buffer);
 
     let header = Header::from(&mut receive_buffer);
     let question = Question::from(&mut receive_buffer);
@@ -72,4 +78,3 @@ fn main() -> Result<()> {
 
     return Ok(());
 }
-
