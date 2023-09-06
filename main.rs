@@ -15,8 +15,11 @@ use crate::question::Question;
 use crate::resource_record::ResourceRecord;
 
 /* TODO:
- * create dns server
- * implement CNAME, NS, MX, AAAA resource_record types
+ * refactor
+ * implement reading authority and additional section
+ * create dns server,
+ *   - given a domain name, get the IPv4 address that contains the rr for the domain
+ *   - probably will print a graph of recursive queries done
  */
 fn main() -> Result<()> {
     let mut buffer: [u8; 512] = [0; 512];

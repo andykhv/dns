@@ -15,85 +15,140 @@ impl From<&mut MessageBuffer> for ResourceRecord {
     fn from(message: &mut MessageBuffer) ->  ResourceRecord {
         let mut resource_record = ResourceRecord::default();
 
-        let compression_mask = 0b1100_0000;
-        let mut byte = message.next().unwrap_or_default();
-        if byte == compression_mask {
-            let pointer_mask = 0b0011_1111_1111_1111;
-            let mut pointer: u16 = 0;
-            pointer += byte as u16;
-            pointer <<= 8;
-            byte = message.next().unwrap_or_default();
-            pointer |= byte as u16;
-            pointer &= pointer_mask;
+        resource_record.name = ResourceRecord::read_name(message);
+        resource_record.rtype = ResourceRecord::read_type(message);
+        resource_record.rclass = ResourceRecord::read_class(message);
+        resource_record.ttl = ResourceRecord::read_ttl(message);
+        resource_record.rdlength = ResourceRecord::read_length(message);
+        resource_record.rdata = ResourceRecord::read_rdata(&resource_record.rtype, &resource_record.rdlength, message);
 
-            let pointer = pointer as usize; //this can panic since pointer is originally u16
+        return resource_record;
+    }
+}
+
+impl ResourceRecord {
+    fn read_name(message: &mut MessageBuffer) -> String {
+        let mut name = String::new();
+        let compression_mask = 0b1100_0000;
+        let byte = message.next().unwrap_or_default();
+
+        if byte == compression_mask {
+            let pointer = ResourceRecord::read_pointer((byte, message.next().unwrap_or_default()));
             let previous_pointer = message.get_position();
-            let result = message.seek(pointer);
+            let result = message.seek(pointer as usize); //this can panic since pointer is u16
 
             if result.is_err() {
                 println!("{}", result.unwrap_err());
-                return resource_record;
+                return name;
             }
 
-            let mut byte = message.next().unwrap_or_default();
-            while byte != 0 {
-                let qname_count = byte;
-
-                for _ in 0..qname_count {
-                    let character = message.next().unwrap_or_default() as char;
-                    resource_record.name.push(character);
-                }
-
-                //we reach the end if the current byte is 0
-                byte = message.next().unwrap_or_default();
-                if byte != 0 {
-                    resource_record.name.push('.');
-                }
-            }
+            name = ResourceRecord::read_domain_name(message);
 
             let result = message.seek(previous_pointer);
             if result.is_err() {
                 println!("{}", result.unwrap_err());
-                return resource_record;
+                return name;
             }
+        } else {
+            name = ResourceRecord::read_domain_name(message);
         }
 
+        return name;
+    }
+
+    //assume bytes is big endian
+    fn read_pointer(bytes: (u8, u8)) -> u16 {
+        let pointer_mask = 0b0011_1111_1111_1111;
+        let mut pointer: u16 = 0;
+        pointer += bytes.0 as u16;
+        pointer <<= 8;
+        pointer |= bytes.1 as u16;
+        pointer &= pointer_mask;
+
+        return pointer;
+    }
+
+    fn read_type(message: &mut MessageBuffer) -> Type {
         let mut type_value: u16 = 0;
         type_value += message.next().unwrap_or_default() as u16;
         type_value <<= 8;
         type_value |= message.next().unwrap_or_default() as u16;
-        resource_record.rtype = Type::from(type_value);
 
+        return Type::from(type_value);
+    }
+
+    fn read_class(message: &mut MessageBuffer) -> Class {
         let mut class_value: u16 = 0;
         class_value += message.next().unwrap_or_default() as u16;
         class_value <<= 8;
         class_value |= message.next().unwrap_or_default() as u16;
-        resource_record.rclass = Class::from(class_value);
 
-        resource_record.ttl |= message.next().unwrap_or_default() as u32;
-        resource_record.ttl <<= 24;
-        resource_record.ttl |= message.next().unwrap_or_default() as u32;
-        resource_record.ttl <<= 16;
-        resource_record.ttl |= message.next().unwrap_or_default() as u32;
-        resource_record.ttl <<= 8;
-        resource_record.ttl |= message.next().unwrap_or_default() as u32;
+        return Class::from(class_value);
+    }
 
-        resource_record.rdlength |= message.next().unwrap_or_default() as u16;
-        resource_record.rdlength <<= 8;
-        resource_record.rdlength |= message.next().unwrap_or_default() as u16;
+    fn read_ttl(message: &mut MessageBuffer) -> u32 {
+        let mut ttl: u32 = 0;
+        ttl |= message.next().unwrap_or_default() as u32;
+        ttl <<= 24;
+        ttl |= message.next().unwrap_or_default() as u32;
+        ttl <<= 16;
+        ttl |= message.next().unwrap_or_default() as u32;
+        ttl <<= 8;
+        ttl |= message.next().unwrap_or_default() as u32;
 
-        match resource_record.rtype {
-            Type::A => {
-                for _ in 0..resource_record.rdlength {
-                    let value = message.next().unwrap_or_default();
-                    resource_record.rdata.push_str(value.to_string().as_str());
-                    resource_record.rdata.push('.');
-                }
-                resource_record.rdata.pop();
-            },
-            _ => resource_record.rdata = String::from("UNKNOWN TYPE")
+        return ttl;
+    }
+
+    fn read_length(message: &mut MessageBuffer) -> u16 {
+        let mut length: u16 = 0;
+        length |= message.next().unwrap_or_default() as u16;
+        length <<= 8;
+        length |= message.next().unwrap_or_default() as u16;
+
+        return length;
+    }
+
+    fn read_rdata(rtype: &Type, rdlength: &u16, message: &mut MessageBuffer) -> String {
+        match rtype {
+            Type::A     => ResourceRecord::read_address(rdlength, message),
+            Type::CNAME => ResourceRecord::read_domain_name(message),
+            Type::NS    => ResourceRecord::read_domain_name(message),
+            _ => String::from("UNKNOWN TYPE")
+        }
+    }
+
+
+    fn read_address(rdlength: &u16, message: &mut MessageBuffer) -> String {
+        let mut address = String::new();
+
+        for _ in 0..*rdlength {
+            let value = message.next().unwrap_or_default();
+            address.push_str(&value.to_string());
+            address.push('.');
+        }
+        address.pop();
+
+        return address;
+    }
+
+    fn read_domain_name(message: &mut MessageBuffer) -> String {
+        let mut name = String::new();
+        let mut byte = message.next().unwrap_or_default();
+        while byte != 0 {
+            let name_count = byte;
+
+            for _ in 0..name_count {
+                let character = message.next().unwrap_or_default() as char;
+                name.push(character);
+            }
+
+            //we reach the end if the current byte is 0
+            byte = message.next().unwrap_or_default();
+            if byte != 0 {
+                name.push('.');
+            }
         }
 
-        return resource_record;
+        return name;
     }
 }
