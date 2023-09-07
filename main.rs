@@ -5,47 +5,27 @@ mod question;
 mod enums;
 mod resource_record;
 
-use std::io::{Read, Result};
-use std::fs::File;
+use std::io::Result;
 use std::net::UdpSocket;
 use crate::message::Message;
 use crate::message_buffer::MessageBuffer;
 use crate::header::Header;
 use crate::question::Question;
-use crate::resource_record::ResourceRecord;
 
 /* TODO:
  * refactor
- * implement reading authority and additional section
- * create dns server,
+ * create recursive resolver,
+ *   - bug where read_domain_name contains a pointer
  *   - given a domain name, get the IPv4 address that contains the rr for the domain
  *   - probably will print a graph of recursive queries done
  */
 fn main() -> Result<()> {
-    let mut buffer: [u8; 512] = [0; 512];
-    let mut f = File::open("./packets/response_packet")?;
-    let _ = f.read(&mut buffer);
-    let mut message_buffer = MessageBuffer::new(buffer);
-    
-    let mut message = Message::default();
-    message.header = Header::from(&mut message_buffer);
-
-    for _ in 0..message.header.qdcount {
-        message.question.push(Question::from(&mut message_buffer));
-    }
-
-    for _ in 0..message.header.ancount {
-        message.answer.push(ResourceRecord::from(&mut message_buffer));
-    }
-
-    println!("{:?}", message);
-
     let mut header = Header::default();
     header.recursion_desired = true;
     header.qdcount = 1;
-    header.id = 192;
+    header.id = 1997;
     let mut question = Question::default();
-    question.qname = String::from("blog.andykhov.xyz");
+    question.qname = String::from("google.com");
 
     let mut packet = header.to_bytes();
     packet.append(&mut question.to_bytes());
@@ -58,26 +38,26 @@ fn main() -> Result<()> {
     }
 
     let socket = result.unwrap();
-    let result = socket.send_to(packet.as_slice(), ("8.8.8.8", 53));
 
-    if result.is_err() {
-        println!("{}", result.unwrap_err());
-        return Ok(());
+    let mut header = Header::default();
+
+    while header.ancount == 0 {
+        let result = socket.send_to(packet.as_slice(), ("198.41.0.4", 53)); //a.root-servers.net
+
+        if result.is_err() {
+            println!("{}", result.unwrap_err());
+            return Ok(());
+        }
+
+        let mut buffer: [u8; 512] = [0; 512];
+        socket.recv_from(&mut buffer)?;
+        let message_buffer = MessageBuffer::new(buffer);
+        let message = Message::from(message_buffer);
+
+        println!("{:?}", message);
+
+        header.ancount = 1;
     }
-
-    let mut buffer: [u8; 512] = [0; 512];
-    socket.recv_from(&mut buffer)?;
-    let mut receive_buffer = MessageBuffer::new(buffer);
-
-    let header = Header::from(&mut receive_buffer);
-    let question = Question::from(&mut receive_buffer);
-    let r1 = ResourceRecord::from(&mut receive_buffer);
-    let r2 = ResourceRecord::from(&mut receive_buffer);
-
-    println!("{:?}", header);
-    println!("{:?}", question);
-    println!("{:?}", r1);
-    println!("{:?}", r2);
 
     return Ok(());
 }
