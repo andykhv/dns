@@ -42,18 +42,19 @@ impl ResourceRecord {
                     return name;
                 }
 
-                name.push_str(ResourceRecord::read_labels(message).as_str());
+                name.push_str(&ResourceRecord::read_domain_name(message).as_str());
 
                 let _ = message.seek(previous_pointer); //ignore error here since previous_pointer should be valid
-                byte = 0;
+                byte = 0; //end loop
             } else {
                 name.push_str(ResourceRecord::read_label(byte, message).as_str());
                 byte = message.next().unwrap_or_default();
+
+                if byte == 0 {
+                    name.pop();
+                }
             }
         }
-
-        //pop the last '.' char, since a label sequence ends with a 00 byte
-        name.pop();
 
         return name;
     }
@@ -67,23 +68,12 @@ impl ResourceRecord {
     fn read_pointer(bytes: (u8, u8)) -> u16 {
         let pointer_mask = 0b0011_1111_1111_1111;
         let mut pointer: u16 = 0;
-        pointer += bytes.0 as u16;
+        pointer |= bytes.0 as u16;
         pointer <<= 8;
         pointer |= bytes.1 as u16;
         pointer &= pointer_mask;
 
         return pointer;
-    }
-
-    fn read_labels(message: &mut MessageBuffer) -> String {
-        let mut labels = String::new();
-        let mut byte = message.next().unwrap_or_default();
-        while byte != 0 {
-            labels.push_str(&ResourceRecord::read_label(byte, message).as_str());
-            byte = message.next().unwrap_or_default();
-        }
-
-        return labels;
     }
 
     fn read_label(label_count: u8, message: &mut MessageBuffer) -> String {
@@ -141,15 +131,15 @@ impl ResourceRecord {
 
     fn read_rdata(rtype: &Type, rdlength: &u16, message: &mut MessageBuffer) -> String {
         match rtype {
-            Type::A     => ResourceRecord::read_address(rdlength, message),
+            Type::A     => ResourceRecord::read_ipv4_address(rdlength, message),
             Type::CNAME => ResourceRecord::read_domain_name(message),
             Type::NS    => ResourceRecord::read_domain_name(message),
+            Type::AAAA  => ResourceRecord::read_ipv6_address(rdlength, message),
             _ => String::from("UNKNOWN TYPE")
         }
     }
 
-
-    fn read_address(rdlength: &u16, message: &mut MessageBuffer) -> String {
+    fn read_ipv4_address(rdlength: &u16, message: &mut MessageBuffer) -> String {
         let mut address = String::new();
 
         for _ in 0..*rdlength {
@@ -158,6 +148,17 @@ impl ResourceRecord {
             address.push('.');
         }
         address.pop();
+
+        return address;
+    }
+
+    fn read_ipv6_address(rdlength: &u16, message: &mut MessageBuffer) -> String {
+        let mut address = String::new();
+
+        for _ in 0..*rdlength {
+            let value = message.next().unwrap_or_default();
+            address.push_str(&value.to_string());
+        }
 
         return address;
     }
