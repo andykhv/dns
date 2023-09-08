@@ -130,32 +130,17 @@ impl From<&mut MessageBuffer> for Header {
         let rcode = byte & mask;
         header.rcode = RCode::from(rcode);
 
-        //qdcount
-        header.qdcount += message.next().unwrap_or_default() as u16;
-        header.qdcount <<= 8;
-        header.qdcount |= message.next().unwrap_or_default() as u16;
-
-        //ancount
-        header.ancount += message.next().unwrap_or_default() as u16;
-        header.ancount <<= 8;
-        header.ancount |= message.next().unwrap_or_default() as u16;
-
-        //nscount
-        header.nscount += message.next().unwrap_or_default() as u16;
-        header.nscount <<= 8;
-        header.nscount |= message.next().unwrap_or_default() as u16;
-
-        //qdcount
-        header.arcount += message.next().unwrap_or_default() as u16;
-        header.arcount <<= 8;
-        header.arcount |= message.next().unwrap_or_default() as u16;
+        header.qdcount = message.next_u16().unwrap_or_default();
+        header.ancount = message.next_u16().unwrap_or_default();
+        header.nscount = message.next_u16().unwrap_or_default();
+        header.arcount = message.next_u16().unwrap_or_default();
 
         return header;
     }
 }
 
 impl Header {
-    pub fn to_bytes(self) -> Vec<u8> {
+    pub fn to_be_bytes(self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
 
         let id = self.id.to_be_bytes();

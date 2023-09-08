@@ -27,14 +27,10 @@ impl From<&mut MessageBuffer> for Question {
 
         question.qname.pop();
 
-        let mut qtype: u16 = message.next().unwrap_or_default() as u16;
-        qtype <<= 8;
-        qtype |= message.next().unwrap_or_default() as u16;
+        let qtype = message.next_u16().unwrap_or_default();
         question.qtype = Type::from(qtype);
 
-        let mut qclass: u16 = message.next().unwrap_or_default() as u16;
-        qclass <<= 8;
-        qclass |= message.next().unwrap_or_default() as u16;
+        let qclass = message.next_u16().unwrap_or_default();
         question.qclass = Class::from(qclass);
 
         return question;
@@ -42,7 +38,7 @@ impl From<&mut MessageBuffer> for Question {
 }
 
 impl Question {
-    pub fn to_bytes(self) -> Vec<u8> {
+    pub fn to_be_bytes(self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
 
         for word in self.qname.split('.') {

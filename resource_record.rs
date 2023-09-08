@@ -90,43 +90,21 @@ impl ResourceRecord {
     }
 
     fn read_type(message: &mut MessageBuffer) -> Type {
-        let mut type_value: u16 = 0;
-        type_value += message.next().unwrap_or_default() as u16;
-        type_value <<= 8;
-        type_value |= message.next().unwrap_or_default() as u16;
-
+        let type_value = message.next_u16().unwrap_or_default();
         return Type::from(type_value);
     }
 
     fn read_class(message: &mut MessageBuffer) -> Class {
-        let mut class_value: u16 = 0;
-        class_value += message.next().unwrap_or_default() as u16;
-        class_value <<= 8;
-        class_value |= message.next().unwrap_or_default() as u16;
-
+        let class_value = message.next_u16().unwrap_or_default();
         return Class::from(class_value);
     }
 
     fn read_ttl(message: &mut MessageBuffer) -> u32 {
-        let mut ttl: u32 = 0;
-        ttl |= message.next().unwrap_or_default() as u32;
-        ttl <<= 24;
-        ttl |= message.next().unwrap_or_default() as u32;
-        ttl <<= 16;
-        ttl |= message.next().unwrap_or_default() as u32;
-        ttl <<= 8;
-        ttl |= message.next().unwrap_or_default() as u32;
-
-        return ttl;
+        return message.next_u32().unwrap_or_default();
     }
 
     fn read_length(message: &mut MessageBuffer) -> u16 {
-        let mut length: u16 = 0;
-        length |= message.next().unwrap_or_default() as u16;
-        length <<= 8;
-        length |= message.next().unwrap_or_default() as u16;
-
-        return length;
+        return message.next_u16().unwrap_or_default();
     }
 
     fn read_rdata(rtype: &Type, rdlength: &u16, message: &mut MessageBuffer) -> String {

@@ -39,8 +39,8 @@ fn main() -> Result<()> {
         let mut question = Question::default();
         question.qname = String::from(target);
 
-        let mut packet = header.to_bytes();
-        packet.append(&mut question.to_bytes());
+        let mut packet = header.to_be_bytes();
+        packet.append(&mut question.to_be_bytes());
 
         let result = socket.send_to(packet.as_slice(), (host.as_str(), 53)); //a.root-servers.net
 
