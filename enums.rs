@@ -1,4 +1,4 @@
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Type {
     #[default]
     A,
@@ -32,7 +32,7 @@ impl From<Type> for [u8; 2] {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Class {
     #[default]
     IN = 1,

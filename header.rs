@@ -16,7 +16,7 @@ pub struct Header {
     pub arcount: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OpCode {
     #[default]
     QUERY  = 0,
@@ -25,7 +25,7 @@ pub enum OpCode {
     OTHER  = 3
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RCode {
     #[default]
     NoError         = 0,
