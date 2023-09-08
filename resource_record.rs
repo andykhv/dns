@@ -15,7 +15,7 @@ impl From<&mut MessageBuffer> for ResourceRecord {
     fn from(message: &mut MessageBuffer) ->  ResourceRecord {
         let mut resource_record = ResourceRecord::default();
 
-        resource_record.name = ResourceRecord::read_name(message);
+        resource_record.name = ResourceRecord::read_domain_name(message);
         resource_record.rtype = ResourceRecord::read_type(message);
         resource_record.rclass = ResourceRecord::read_class(message);
         resource_record.ttl = ResourceRecord::read_ttl(message);
@@ -27,33 +27,40 @@ impl From<&mut MessageBuffer> for ResourceRecord {
 }
 
 impl ResourceRecord {
-    fn read_name(message: &mut MessageBuffer) -> String {
+    fn read_domain_name(message: &mut MessageBuffer) -> String {
         let mut name = String::new();
-        let compression_mask = 0b1100_0000;
-        let byte = message.next().unwrap_or_default();
+        let mut byte = message.next().unwrap_or_default();
 
-        if byte == compression_mask {
-            let pointer = ResourceRecord::read_pointer((byte, message.next().unwrap_or_default()));
-            let previous_pointer = message.get_position();
-            let result = message.seek(pointer as usize); //this can panic since pointer is u16
+        while byte != 0 {
+            if ResourceRecord::is_pointer(byte) {
+                let pointer = ResourceRecord::read_pointer((byte, message.next().unwrap_or_default()));
+                let previous_pointer = message.get_position();
+                let result = message.seek(pointer as usize); //this can panic since pointer is u16
 
-            if result.is_err() {
-                println!("{}", result.unwrap_err());
-                return name;
+                if result.is_err() {
+                    println!("{}", result.unwrap_err());
+                    return name;
+                }
+
+                name.push_str(ResourceRecord::read_labels(message).as_str());
+
+                let _ = message.seek(previous_pointer); //ignore error here since previous_pointer should be valid
+                byte = 0;
+            } else {
+                name.push_str(ResourceRecord::read_label(byte, message).as_str());
+                byte = message.next().unwrap_or_default();
             }
-
-            name = ResourceRecord::read_domain_name(message);
-
-            let result = message.seek(previous_pointer);
-            if result.is_err() {
-                println!("{}", result.unwrap_err());
-                return name;
-            }
-        } else {
-            name = ResourceRecord::read_domain_name(message);
         }
 
+        //pop the last '.' char, since a label sequence ends with a 00 byte
+        name.pop();
+
         return name;
+    }
+
+    fn is_pointer(byte: u8) -> bool {
+        let compression_mask = 0b1100_0000;
+        return (byte & compression_mask) == compression_mask;
     }
 
     //assume bytes is big endian
@@ -66,6 +73,30 @@ impl ResourceRecord {
         pointer &= pointer_mask;
 
         return pointer;
+    }
+
+    fn read_labels(message: &mut MessageBuffer) -> String {
+        let mut labels = String::new();
+        let mut byte = message.next().unwrap_or_default();
+        while byte != 0 {
+            labels.push_str(&ResourceRecord::read_label(byte, message).as_str());
+            byte = message.next().unwrap_or_default();
+        }
+
+        return labels;
+    }
+
+    fn read_label(label_count: u8, message: &mut MessageBuffer) -> String {
+        let mut label = String::new();
+
+        for _ in 0..label_count {
+            let character = message.next().unwrap_or_default() as char;
+            label.push(character);
+        }
+
+        label.push('.');
+
+        return label;
     }
 
     fn read_type(message: &mut MessageBuffer) -> Type {
@@ -129,26 +160,5 @@ impl ResourceRecord {
         address.pop();
 
         return address;
-    }
-
-    fn read_domain_name(message: &mut MessageBuffer) -> String {
-        let mut name = String::new();
-        let mut byte = message.next().unwrap_or_default();
-        while byte != 0 {
-            let name_count = byte;
-
-            for _ in 0..name_count {
-                let character = message.next().unwrap_or_default() as char;
-                name.push(character);
-            }
-
-            //we reach the end if the current byte is 0
-            byte = message.next().unwrap_or_default();
-            if byte != 0 {
-                name.push('.');
-            }
-        }
-
-        return name;
     }
 }
