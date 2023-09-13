@@ -1,7 +1,7 @@
 use crate::message_buffer::MessageBuffer;
 use crate::enums::{Type, Class};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ResourceRecord {
     pub name: String,   //domain name
     pub rtype: Type,    //type code of rdata
@@ -139,5 +139,28 @@ impl ResourceRecord {
         }
 
         return address;
+    }
+
+    pub fn to_be_bytes(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
+
+        for word in self.name.split('.') {
+            bytes.push(word.len() as u8);
+            bytes.append(&mut word.as_bytes().to_vec());
+        }
+        bytes.push(0);
+
+        bytes.append(&mut <[u8; 2]>::from(self.rtype).to_vec());
+        bytes.append(&mut <[u8; 2]>::from(self.rclass).to_vec());
+        bytes.append(&mut self.ttl.to_be_bytes().to_vec());
+        bytes.append(&mut self.rdlength.to_be_bytes().to_vec());
+
+        for word in self.rdata.split('.') {
+            bytes.push(word.len() as u8);
+            bytes.append(&mut word.as_bytes().to_vec());
+        }
+        bytes.push(0);
+
+        return bytes;
     }
 }

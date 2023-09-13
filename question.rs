@@ -1,7 +1,7 @@
 use crate::message_buffer::MessageBuffer;
 use crate::enums::{Type, Class};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Question {
     pub qname: String, //domain name
     pub qtype: Type, //type of query
@@ -38,7 +38,7 @@ impl From<&mut MessageBuffer> for Question {
 }
 
 impl Question {
-    pub fn to_be_bytes(self) -> Vec<u8> {
+    pub fn to_be_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
 
         for word in self.qname.split('.') {

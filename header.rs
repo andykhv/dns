@@ -16,7 +16,7 @@ pub struct Header {
     pub arcount: u16,
 }
 
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum OpCode {
     #[default]
     QUERY  = 0,
@@ -25,7 +25,7 @@ pub enum OpCode {
     OTHER  = 3
 }
 
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum RCode {
     #[default]
     NoError         = 0,
@@ -140,7 +140,7 @@ impl From<&mut MessageBuffer> for Header {
 }
 
 impl Header {
-    pub fn to_be_bytes(self) -> Vec<u8> {
+    pub fn to_be_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
 
         let id = self.id.to_be_bytes();
