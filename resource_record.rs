@@ -1,3 +1,6 @@
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::str::FromStr;
+
 use crate::message_buffer::MessageBuffer;
 use crate::enums::{Type, Class};
 
@@ -20,7 +23,7 @@ impl From<&mut MessageBuffer> for ResourceRecord {
         resource_record.rclass = ResourceRecord::read_class(message);
         resource_record.ttl = ResourceRecord::read_ttl(message);
         resource_record.rdlength = ResourceRecord::read_length(message);
-        resource_record.rdata = ResourceRecord::read_rdata(&resource_record.rtype, &resource_record.rdlength, message);
+        resource_record.rdata = ResourceRecord::read_rdata(&resource_record.rtype, message);
 
         return resource_record;
     }
@@ -107,38 +110,40 @@ impl ResourceRecord {
         return message.next_u16().unwrap_or_default();
     }
 
-    fn read_rdata(rtype: &Type, rdlength: &u16, message: &mut MessageBuffer) -> String {
+    fn read_rdata(rtype: &Type, message: &mut MessageBuffer) -> String {
         match rtype {
-            Type::A     => ResourceRecord::read_ipv4_address(rdlength, message),
+            Type::A     => ResourceRecord::read_ipv4_address(message),
+            Type::AAAA  => ResourceRecord::read_ipv6_address(message),
             Type::CNAME => ResourceRecord::read_domain_name(message),
             Type::NS    => ResourceRecord::read_domain_name(message),
-            Type::AAAA  => ResourceRecord::read_ipv6_address(rdlength, message),
             _ => String::from("UNKNOWN TYPE")
         }
     }
 
-    fn read_ipv4_address(rdlength: &u16, message: &mut MessageBuffer) -> String {
-        let mut address = String::new();
+    fn read_ipv4_address(message: &mut MessageBuffer) -> String {
+        let ipv4 = Ipv4Addr::new(
+            message.next().unwrap_or_default(),
+            message.next().unwrap_or_default(),
+            message.next().unwrap_or_default(),
+            message.next().unwrap_or_default()
+        );
 
-        for _ in 0..*rdlength {
-            let value = message.next().unwrap_or_default();
-            address.push_str(&value.to_string());
-            address.push('.');
-        }
-        address.pop();
-
-        return address;
+        return ipv4.to_string();
     }
 
-    fn read_ipv6_address(rdlength: &u16, message: &mut MessageBuffer) -> String {
-        let mut address = String::new();
+    fn read_ipv6_address(message: &mut MessageBuffer) -> String {
+        let ipv6 = Ipv6Addr::new(
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+            message.next_u16().unwrap_or_default(),
+        );
 
-        for _ in 0..*rdlength {
-            let value = message.next().unwrap_or_default();
-            address.push_str(&value.to_string());
-        }
-
-        return address;
+        return ipv6.to_string();
     }
 
     pub fn to_be_bytes(&self) -> Vec<u8> {
@@ -155,9 +160,17 @@ impl ResourceRecord {
         bytes.append(&mut self.ttl.to_be_bytes().to_vec());
         bytes.append(&mut self.rdlength.to_be_bytes().to_vec());
 
-        for word in self.rdata.split('.') {
-            bytes.push(word.len() as u8);
-            bytes.append(&mut word.as_bytes().to_vec());
+        if self.rtype == Type::A {
+            let ipv4 = Ipv4Addr::from_str(&self.rdata).unwrap();
+            bytes.append(&mut ipv4.octets().to_vec());
+        } else if self.rtype == Type::AAAA {
+            let ipv6 = Ipv6Addr::from_str(&self.rdata).unwrap();
+            bytes.append(&mut ipv6.octets().to_vec());
+        } else {
+            for word in self.rdata.split('.') {
+                bytes.push(word.len() as u8);
+                bytes.append(&mut word.as_bytes().to_vec());
+            }
         }
         bytes.push(0);
 
