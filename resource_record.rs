@@ -172,7 +172,6 @@ impl ResourceRecord {
                 bytes.append(&mut word.as_bytes().to_vec());
             }
         }
-        bytes.push(0);
 
         return bytes;
     }

@@ -14,28 +14,58 @@ use crate::header::Header;
 use crate::question::Question;
 
 fn main() -> Result<()> {
-    let query_socket = UdpSocket::bind(("0.0.0.0", 8008))?;
+    let result = UdpSocket::bind(("127.0.0.1", 8100));
 
-    let mut query_buffer: [u8; 512] = [0; 512];
-    let (_, src_address) = query_socket.recv_from(&mut query_buffer)?;
-    let message_buffer = MessageBuffer::new(query_buffer);
-    let query_message = Message::from(message_buffer);
+    if result.is_err() {
+        println!("{}", result.unwrap_err());
+        return Ok(());
+    }
 
-    let mut message = resolve_question(&query_message.questions[0].qname, query_message.questions[0].qtype)?;
-    message.header.id = query_message.header.id;
+    let query_socket = result.unwrap();
 
-    let mut buffer = message.header.to_be_bytes();
-    buffer.append(&mut message.questions[0].clone().to_be_bytes());
-    buffer.append(&mut message.answers[0].to_be_bytes());
-    query_socket.send_to(&buffer, src_address)?;
+    println!("{:?}", query_socket);
 
-    return Ok(());
+    loop {
+        let mut query_buffer: [u8; 512] = [0; 512];
+        let (_, src_address) = query_socket.recv_from(&mut query_buffer)?;
+        let message_buffer = MessageBuffer::new(query_buffer);
+        let query_message = Message::from(message_buffer);
+
+        let mut message = resolve_question(&query_message.questions[0].qname, query_message.questions[0].qtype)?;
+        message.header.id = query_message.header.id;
+
+        let mut buffer = message.header.to_be_bytes();
+
+        for i in 0..message.header.qdcount {
+            let j = i as usize;
+            println!("{}", j);
+            buffer.append(&mut message.questions[j].to_be_bytes());
+        }
+        println!("{:?}", message.answers);
+        for i in 0..message.header.ancount {
+            let j = i as usize;
+            println!("{}", j);
+            buffer.append(&mut message.answers[j].to_be_bytes());
+        }
+        for i in 0..message.header.nscount {
+            let j = i as usize;
+            println!("{}", j);
+            buffer.append(&mut message.authorities[j].to_be_bytes());
+        }
+        for i in 0..message.header.arcount {
+            let j = i as usize;
+            println!("{}", j);
+            buffer.append(&mut message.additional[j].to_be_bytes());
+        }
+
+        query_socket.send_to(&buffer, src_address)?;
+    }
 }
 
 fn resolve_question(qname: &str, qtype: Type) -> Result<Message> {
     let mut target = String::from("198.41.0.4");
     let target_port: u16 = 53;
-    let socket = UdpSocket::bind(("0.0.0.0", 8000))?;
+    let socket = UdpSocket::bind(("127.0.0.1", 8000))?;
 
     let mut header = Header::default();
     header.id = 1997;
@@ -68,7 +98,5 @@ fn resolve_question(qname: &str, qtype: Type) -> Result<Message> {
             Some(a) => target = a.rdata.to_owned(),
             None => return Err(Error::new(ErrorKind::NotFound, "question unresolvable: authority not found")) 
         }
-
-        println!("{}", target);
     }
 }
